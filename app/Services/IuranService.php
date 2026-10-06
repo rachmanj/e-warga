@@ -197,6 +197,53 @@ class IuranService
     }
 
     /**
+     * @param  list<string>  $periodes
+     * @param  list<string>|null  $status
+     * @return array{total_tagihan: string, total_terbayar: string, total_tunggakan: string}
+     */
+    public function ringkasanPeriode(int $tenantId, array $periodes, ?int $iuranJenisId = null, ?array $status = null): array
+    {
+        if ($periodes === []) {
+            return [
+                'total_tagihan' => '0.00',
+                'total_terbayar' => '0.00',
+                'total_tunggakan' => '0.00',
+            ];
+        }
+
+        $query = IuranTagihan::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('periode', $periodes);
+
+        if ($status !== null) {
+            $query->whereIn('status', $status);
+        }
+
+        if ($iuranJenisId !== null) {
+            $query->where('iuran_jenis_id', $iuranJenisId);
+        }
+
+        $totalTagihan = '0.00';
+        $totalTerbayar = '0.00';
+        $totalTunggakan = '0.00';
+
+        foreach ($query->get() as $tagihan) {
+            $efektif = $this->tagihanEfektif($tagihan);
+            $totalTagihan = $this->tambah($totalTagihan, $efektif['nominal']);
+            $totalTerbayar = $this->tambah($totalTerbayar, $efektif['terbayar']);
+            if ($tagihan->status !== 'bebas') {
+                $totalTunggakan = $this->tambah($totalTunggakan, $efektif['sisa']);
+            }
+        }
+
+        return [
+            'total_tagihan' => $totalTagihan,
+            'total_terbayar' => $totalTerbayar,
+            'total_tunggakan' => $totalTunggakan,
+        ];
+    }
+
+    /**
      * @return list<array{keluarga_id: int, nama_kepala: string, bulan: array<int, string|null>}>
      */
     public function gridBulanan(int $tenantId, int $tahun, int $iuranJenisId): array
