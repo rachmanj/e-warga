@@ -1,4 +1,4 @@
-@php use App\Support\FormatUang; @endphp
+@php use App\Support\FormatUang; use App\Support\KopRt; @endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -21,8 +21,12 @@
     @if ($rt)
         <div class="kop">
             <h2>{{ $rt->nama }}</h2>
-            <p>RW {{ $rt->rw }} · Kel. {{ $rt->kelurahan }} · Kec. {{ $rt->kecamatan }}</p>
-            <p>{{ $rt->kota }}</p>
+            @if (($barisWilayah = KopRt::barisWilayah($rt)) !== '')
+                <p>{{ $barisWilayah }}</p>
+            @endif
+            @if (($barisKota = KopRt::barisKota($rt)) !== null)
+                <p>{{ $barisKota }}</p>
+            @endif
         </div>
     @endif
 

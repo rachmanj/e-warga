@@ -1,3 +1,4 @@
+@php use App\Support\KopRt; @endphp
 @extends('adminlte::page')
 
 @section('title', 'Pilih RT aktif')
@@ -20,7 +21,7 @@
                         <option value="">— Pilih RT —</option>
                         @foreach ($rts as $rt)
                             <option value="{{ $rt->id }}" @selected($rtAktifId == $rt->id)>
-                                {{ $rt->nama }} (RW {{ $rt->rw }}, {{ $rt->kelurahan }})
+                                {{ KopRt::labelPilihRtAktif($rt) }}
                             </option>
                         @endforeach
                     </select>
