@@ -20,6 +20,7 @@ use App\Support\FormatUang;
 use Database\Seeders\KasKategoriSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\View;
 use InvalidArgumentException;
 use Tests\TestCase;
 
@@ -431,6 +432,15 @@ class IuranKasModuleTest extends TestCase
     public function test_kwitansi_pdf_mengembalikan_application_pdf_dengan_nomor(): void
     {
         $keluarga = $this->buatKeluargaAktif();
+        Warga::query()->create([
+            'tenant_id' => $keluarga->tenant_id,
+            'keluarga_id' => $keluarga->id,
+            'nik' => '3276012345678001',
+            'nama' => 'Budi Kwitansi Test',
+            'hubungan' => 'kepala',
+            'jenis_kelamin' => 'L',
+            'status' => 'aktif',
+        ]);
         $jenis = $this->buatJenisIuran();
         $tagihan = IuranTagihan::query()->create([
             'tenant_id' => $keluarga->tenant_id,
@@ -451,7 +461,10 @@ class IuranKasModuleTest extends TestCase
 
         $this->loginSebagai('bendahara');
 
-        $nomor = $pembayaran->fresh('kwitansi')->kwitansi->nomor;
+        $pembayaran->load(['kwitansi', 'tagihan.jenis', 'tagihan.keluarga.warga']);
+        $nomor = $pembayaran->kwitansi->nomor;
+        $kepala = $pembayaran->tagihan->keluarga?->warga->firstWhere('hubungan', 'kepala');
+        $nominalTeks = FormatUang::penuh($pembayaran->jumlah);
 
         $response = $this->get(route('iuran.pembayaran.kwitansi', $pembayaran));
         $response->assertOk();
@@ -459,7 +472,19 @@ class IuranKasModuleTest extends TestCase
         $isiPdf = method_exists($response->baseResponse, 'getContent')
             ? (string) $response->baseResponse->getContent()
             : $response->getContent();
-        $this->assertStringContainsString($nomor, $isiPdf);
+        $this->assertStringStartsWith('%PDF', $isiPdf);
+
+        $htmlKwitansi = View::make('iuran.kwitansi-pdf', [
+            'rt' => ActiveRt::current(),
+            'kwitansi' => $pembayaran->kwitansi,
+            'pembayaran' => $pembayaran,
+            'tagihan' => $pembayaran->tagihan,
+            'kepala' => $kepala,
+        ])->render();
+
+        $this->assertStringContainsString($nomor, $htmlKwitansi);
+        $this->assertStringContainsString($kepala->nama, $htmlKwitansi);
+        $this->assertStringContainsString($nominalTeks, $htmlKwitansi);
     }
 
     public function test_halaman_kas_menampilkan_saldo_akhir_sesuai_layanan(): void
@@ -583,7 +608,7 @@ class IuranKasModuleTest extends TestCase
             'keluarga_id' => $keluarga->id,
             'iuran_jenis_id' => $jenis->id,
             'periode' => '2025-06',
-            'nominal' => '50000.00',
+            'nominal' => '70000.00',
             'status' => 'belum',
         ]);
 
@@ -604,6 +629,11 @@ class IuranKasModuleTest extends TestCase
         $ringkasan2024 = $this->iuranService->ringkasanTahun($keluarga->tenant_id, 2024, $jenis->id);
         $ringkasan2025 = $this->iuranService->ringkasanTahun($keluarga->tenant_id, 2025, $jenis->id);
 
-        $this->assertNotSame($ringkasan2024['total_tagihan'], $ringkasan2025['total_tagihan']);
+        $totalTagihan2024 = (float) $ringkasan2024['total_tagihan'];
+        $totalTagihan2025 = (float) $ringkasan2025['total_tagihan'];
+
+        $this->assertSame(50000.0, $totalTagihan2024);
+        $this->assertSame(70000.0, $totalTagihan2025);
+        $this->assertNotSame($totalTagihan2024, $totalTagihan2025);
     }
 }
