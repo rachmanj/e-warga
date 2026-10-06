@@ -35,6 +35,63 @@ class KasService
     /**
      * @return list<array{bulan: int, total_masuk: string, total_keluar: string, saldo: string}>
      */
+    /**
+     * @return array{
+     *     ringkasan: array{saldo_awal: string, total_masuk: string, total_keluar: string, saldo_akhir: string},
+     *     baris: list<array<string, mixed>>
+     * }
+     */
+    public function bukuKas(int $tenantId, int $tahun, string $pos): array
+    {
+        $ringkasan = $this->ringkasan($tenantId, $tahun, $pos);
+        $saldoBerjalan = $ringkasan['saldo_awal'];
+
+        $baris = [
+            [
+                'jenis_baris' => 'saldo_awal',
+                'tanggal' => null,
+                'uraian' => 'Saldo awal',
+                'jenis' => null,
+                'jumlah' => $ringkasan['saldo_awal'],
+                'saldo_berjalan' => $saldoBerjalan,
+                'id' => null,
+            ],
+        ];
+
+        $transaksi = KasTransaksi::query()
+            ->where('tenant_id', $tenantId)
+            ->where('pos', $pos)
+            ->whereYear('tanggal', $tahun)
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($transaksi as $row) {
+            $jumlah = $this->formatUang($row->jumlah);
+            if ($row->jenis === 'masuk') {
+                $saldoBerjalan = $this->tambah($saldoBerjalan, $jumlah);
+            } else {
+                $saldoBerjalan = $this->kurangi($saldoBerjalan, $jumlah);
+            }
+
+            $baris[] = [
+                'jenis_baris' => 'transaksi',
+                'tanggal' => $row->tanggal,
+                'uraian' => $row->uraian,
+                'jenis' => $row->jenis,
+                'jumlah' => $jumlah,
+                'saldo_berjalan' => $saldoBerjalan,
+                'id' => $row->id,
+                'iuran_pembayaran_id' => $row->iuran_pembayaran_id,
+            ];
+        }
+
+        return [
+            'ringkasan' => $ringkasan,
+            'baris' => $baris,
+        ];
+    }
+
     public function rekapBulanan(int $tenantId, int $tahun, string $pos): array
     {
         $saldoBerjalan = $this->saldoAwalUntuk($tenantId, $tahun, $pos);

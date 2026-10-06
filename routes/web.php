@@ -4,11 +4,13 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DokumenWargaController;
+use App\Http\Controllers\IuranController;
+use App\Http\Controllers\KasController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PenggunaController;
+use App\Http\Controllers\RtAktifController;
 use App\Http\Controllers\SuratController;
 use App\Http\Controllers\VerifikasiSuratController;
-use App\Http\Controllers\RtAktifController;
 use App\Http\Controllers\WargaAnggotaController;
 use App\Http\Controllers\WargaController;
 use App\Http\Controllers\WargaMutasiController;
@@ -79,6 +81,40 @@ Route::middleware('auth')->group(function (): void {
             Route::post('surat/{surat}/setujui', [SuratController::class, 'setujui'])->name('surat.setujui');
             Route::post('surat/{surat}/tolak', [SuratController::class, 'tolak'])->name('surat.tolak');
             Route::post('surat/{surat}/catatan', [SuratController::class, 'catatan'])->name('surat.catatan');
+        });
+
+        Route::middleware('permission:lihat_iuran')->group(function (): void {
+            Route::get('iuran', [IuranController::class, 'index'])->name('iuran.index');
+            Route::get('iuran/tagihan', [IuranController::class, 'tagihanIndex'])->name('iuran.tagihan.index');
+            Route::get('iuran/tagihan/{tagihan}', [IuranController::class, 'tagihanShow'])->name('iuran.tagihan.show');
+            Route::get('iuran/pembayaran/{pembayaran}/kwitansi', [IuranController::class, 'kwitansi'])->name('iuran.pembayaran.kwitansi');
+        });
+
+        Route::get('iuran/tunggakan', [IuranController::class, 'tunggakan'])
+            ->middleware('permission:lihat_tunggakan')
+            ->name('iuran.tunggakan');
+
+        Route::middleware('permission:kelola_iuran')->group(function (): void {
+            Route::get('iuran/jenis', [IuranController::class, 'jenisIndex'])->name('iuran.jenis.index');
+            Route::post('iuran/jenis', [IuranController::class, 'jenisStore'])->name('iuran.jenis.store');
+            Route::put('iuran/jenis/{jenis}', [IuranController::class, 'jenisUpdate'])->name('iuran.jenis.update');
+            Route::delete('iuran/jenis/{jenis}', [IuranController::class, 'jenisDestroy'])->name('iuran.jenis.destroy');
+            Route::post('iuran/jenis/{jenis}/tarif', [IuranController::class, 'jenisTarif'])->name('iuran.jenis.tarif');
+            Route::post('iuran/tagihan', [IuranController::class, 'tagihanStore'])->name('iuran.tagihan.store');
+            Route::post('iuran/tagihan/{tagihan}/bebas', [IuranController::class, 'tagihanBebas'])->name('iuran.tagihan.bebas');
+            Route::post('iuran/tagihan/{tagihan}/pembayaran', [IuranController::class, 'pembayaranStore'])->name('iuran.tagihan.pembayaran');
+            Route::delete('iuran/pembayaran/{pembayaran}', [IuranController::class, 'pembayaranDestroy'])->name('iuran.pembayaran.destroy');
+        });
+
+        Route::middleware('permission:lihat_kas')->group(function (): void {
+            Route::get('kas', [KasController::class, 'index'])->name('kas.index');
+            Route::get('kas/rekap', [KasController::class, 'rekap'])->name('kas.rekap');
+        });
+
+        Route::middleware('permission:kelola_kas')->group(function (): void {
+            Route::post('kas/saldo-awal', [KasController::class, 'saldoAwalStore'])->name('kas.saldo-awal.store');
+            Route::post('kas/transaksi', [KasController::class, 'transaksiStore'])->name('kas.transaksi.store');
+            Route::delete('kas/transaksi/{kas}', [KasController::class, 'transaksiDestroy'])->name('kas.transaksi.destroy');
         });
 
         Route::middleware('permission:lihat_surat')->group(function (): void {

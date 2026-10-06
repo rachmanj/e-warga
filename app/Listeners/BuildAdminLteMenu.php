@@ -22,13 +22,53 @@ class BuildAdminLteMenu
             ],
             [
                 'text' => 'Iuran',
-                'url' => '#',
                 'icon' => 'bi bi-cash-coin',
+                'can' => 'lihat_iuran',
+                'submenu' => [
+                    [
+                        'text' => 'Daftar Iuran',
+                        'route' => 'iuran.index',
+                        'icon' => 'bi bi-grid-3x3',
+                        'can' => 'lihat_iuran',
+                    ],
+                    [
+                        'text' => 'Tagihan',
+                        'route' => 'iuran.tagihan.index',
+                        'icon' => 'bi bi-receipt',
+                        'can' => 'lihat_iuran',
+                    ],
+                    [
+                        'text' => 'Tunggakan',
+                        'route' => 'iuran.tunggakan',
+                        'icon' => 'bi bi-exclamation-triangle',
+                        'can' => 'lihat_tunggakan',
+                    ],
+                    [
+                        'text' => 'Jenis Iuran',
+                        'route' => 'iuran.jenis.index',
+                        'icon' => 'bi bi-tags',
+                        'can' => 'kelola_iuran',
+                    ],
+                ],
             ],
             [
                 'text' => 'Kas',
-                'url' => '#',
                 'icon' => 'bi bi-wallet2',
+                'can' => 'lihat_kas',
+                'submenu' => [
+                    [
+                        'text' => 'Buku Kas',
+                        'route' => 'kas.index',
+                        'icon' => 'bi bi-journal-text',
+                        'can' => 'lihat_kas',
+                    ],
+                    [
+                        'text' => 'Rekap Bulanan',
+                        'route' => 'kas.rekap',
+                        'icon' => 'bi bi-bar-chart',
+                        'can' => 'lihat_kas',
+                    ],
+                ],
             ],
             [
                 'text' => 'Surat',

@@ -163,6 +163,141 @@ class IuranService
         });
     }
 
+    /**
+     * @return array{total_tagihan: string, total_terbayar: string, total_tunggakan: string}
+     */
+    public function ringkasanTahun(int $tenantId, int $tahun, ?int $iuranJenisId = null): array
+    {
+        $query = IuranTagihan::query()
+            ->where('tenant_id', $tenantId)
+            ->where('periode', 'like', $tahun.'-%');
+
+        if ($iuranJenisId !== null) {
+            $query->where('iuran_jenis_id', $iuranJenisId);
+        }
+
+        $totalTagihan = '0.00';
+        $totalTerbayar = '0.00';
+        $totalTunggakan = '0.00';
+
+        foreach ($query->get() as $tagihan) {
+            $efektif = $this->tagihanEfektif($tagihan);
+            $totalTagihan = $this->tambah($totalTagihan, $efektif['nominal']);
+            $totalTerbayar = $this->tambah($totalTerbayar, $efektif['terbayar']);
+            if ($tagihan->status !== 'bebas') {
+                $totalTunggakan = $this->tambah($totalTunggakan, $efektif['sisa']);
+            }
+        }
+
+        return [
+            'total_tagihan' => $totalTagihan,
+            'total_terbayar' => $totalTerbayar,
+            'total_tunggakan' => $totalTunggakan,
+        ];
+    }
+
+    /**
+     * @return list<array{keluarga_id: int, nama_kepala: string, bulan: array<int, string|null>}>
+     */
+    public function gridBulanan(int $tenantId, int $tahun, int $iuranJenisId): array
+    {
+        $keluargaList = Keluarga::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'aktif')
+            ->with(['warga' => fn ($q) => $q->where('hubungan', 'kepala')->where('status', 'aktif')])
+            ->orderBy('alamat')
+            ->get();
+
+        $tagihanPerKeluarga = IuranTagihan::query()
+            ->where('tenant_id', $tenantId)
+            ->where('iuran_jenis_id', $iuranJenisId)
+            ->where('periode', 'like', $tahun.'-%')
+            ->get()
+            ->groupBy('keluarga_id');
+
+        $baris = [];
+
+        foreach ($keluargaList as $keluarga) {
+            $bulan = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $bulan[$m] = null;
+            }
+
+            $tagihanKeluarga = $tagihanPerKeluarga->get($keluarga->id, collect());
+            foreach ($tagihanKeluarga as $tagihan) {
+                $parts = explode('-', $tagihan->periode);
+                if (count($parts) === 2 && (int) $parts[0] === $tahun) {
+                    $bulan[(int) $parts[1]] = $tagihan->status;
+                }
+            }
+
+            $kepala = $keluarga->warga->first();
+
+            $baris[] = [
+                'keluarga_id' => $keluarga->id,
+                'nama_kepala' => $kepala?->nama ?? '—',
+                'bulan' => $bulan,
+            ];
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @return list<array{keluarga_id: int, nama_kepala: string, alamat: string, jumlah_periode: int, total_tunggakan: string}>
+     */
+    public function daftarTunggakanKeluarga(int $tenantId, string $periodeHingga): array
+    {
+        $tagihan = IuranTagihan::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['belum', 'sebagian'])
+            ->where('periode', '<=', $periodeHingga)
+            ->with(['keluarga.warga' => fn ($q) => $q->where('hubungan', 'kepala')->where('status', 'aktif')])
+            ->get();
+
+        $perKeluarga = [];
+
+        foreach ($tagihan as $row) {
+            $efektif = $this->tagihanEfektif($row);
+            if (bccomp($efektif['sisa'], '0', 2) <= 0) {
+                continue;
+            }
+
+            $kid = $row->keluarga_id;
+            if (! isset($perKeluarga[$kid])) {
+                $kepala = $row->keluarga?->warga->first();
+                $perKeluarga[$kid] = [
+                    'keluarga_id' => $kid,
+                    'nama_kepala' => $kepala?->nama ?? '—',
+                    'alamat' => $row->keluarga?->alamat ?? '—',
+                    'jumlah_periode' => 0,
+                    'total_tunggakan' => '0.00',
+                ];
+            }
+
+            $perKeluarga[$kid]['jumlah_periode']++;
+            $perKeluarga[$kid]['total_tunggakan'] = $this->tambah(
+                $perKeluarga[$kid]['total_tunggakan'],
+                $efektif['sisa']
+            );
+        }
+
+        $hasil = array_values($perKeluarga);
+
+        usort($hasil, function (array $a, array $b): int {
+            return bccomp($b['total_tunggakan'], $a['total_tunggakan'], 2);
+        });
+
+        return $hasil;
+    }
+
+    public function bebaskanTagihan(IuranTagihan $tagihan, string $alasan): void
+    {
+        $tagihan->status = 'bebas';
+        $tagihan->alasan_bebas = $alasan;
+        $tagihan->save();
+    }
+
     public function hapusPembayaran(IuranPembayaran $pembayaran): void
     {
         DB::transaction(function () use ($pembayaran): void {

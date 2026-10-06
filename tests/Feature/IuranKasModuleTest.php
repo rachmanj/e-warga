@@ -12,8 +12,11 @@ use App\Models\Keluarga;
 use App\Models\Kwitansi;
 use App\Models\Rt;
 use App\Models\User;
+use App\Models\Warga;
 use App\Services\IuranService;
 use App\Services\KasService;
+use App\Support\ActiveRt;
+use App\Support\FormatUang;
 use Database\Seeders\KasKategoriSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,6 +50,18 @@ class IuranKasModuleTest extends TestCase
     private function bendahara(): User
     {
         return User::query()->where('username', 'bendahara')->firstOrFail();
+    }
+
+    private function loginSebagai(string $username): void
+    {
+        $this->post('/login', [
+            'username' => $username,
+            'password' => 'password',
+        ])->assertRedirect(route('dashboard'));
+
+        if ($username === 'admin') {
+            session([ActiveRt::SESSION_KEY => $this->rtUtama()->id]);
+        }
     }
 
     private function buatKeluargaAktif(?Rt $rt = null): Keluarga
@@ -364,5 +379,231 @@ class IuranKasModuleTest extends TestCase
 
         $ids = IuranTagihan::query()->pluck('id')->all();
         $this->assertNotContains($tagihanLain->id, $ids);
+    }
+
+    public function test_pengurus_bisa_lihat_iuran_tetapi_tidak_kas(): void
+    {
+        $this->loginSebagai('pengurus');
+
+        $this->get(route('iuran.index'))->assertOk();
+        $this->get(route('kas.index'))->assertForbidden();
+    }
+
+    public function test_sekretaris_bisa_lihat_iuran_tetapi_tidak_kelola_jenis(): void
+    {
+        $this->loginSebagai('sekretaris');
+
+        $this->get(route('iuran.index'))->assertOk();
+        $this->post(route('iuran.jenis.store'), [
+            'nama' => 'Test',
+            'nominal_default' => 10000,
+            'periode' => 'bulanan',
+        ])->assertForbidden();
+    }
+
+    public function test_post_pembayaran_memperbarui_status_dan_menambah_satu_kas(): void
+    {
+        $keluarga = $this->buatKeluargaAktif();
+        $jenis = $this->buatJenisIuran();
+
+        $tagihan = IuranTagihan::query()->create([
+            'tenant_id' => $keluarga->tenant_id,
+            'keluarga_id' => $keluarga->id,
+            'iuran_jenis_id' => $jenis->id,
+            'periode' => '2025-03',
+            'nominal' => '50000.00',
+            'status' => 'belum',
+        ]);
+
+        $this->loginSebagai('bendahara');
+
+        $this->post(route('iuran.tagihan.pembayaran', $tagihan), [
+            'tanggal' => '2025-03-10',
+            'jumlah' => 50000,
+            'metode' => 'tunai',
+        ])->assertRedirect(route('iuran.tagihan.show', $tagihan));
+
+        $tagihan->refresh();
+        $this->assertSame('lunas', $tagihan->status);
+        $this->assertSame(1, KasTransaksi::query()->where('iuran_pembayaran_id', '!=', null)->count());
+    }
+
+    public function test_kwitansi_pdf_mengembalikan_application_pdf_dengan_nomor(): void
+    {
+        $keluarga = $this->buatKeluargaAktif();
+        $jenis = $this->buatJenisIuran();
+        $tagihan = IuranTagihan::query()->create([
+            'tenant_id' => $keluarga->tenant_id,
+            'keluarga_id' => $keluarga->id,
+            'iuran_jenis_id' => $jenis->id,
+            'periode' => '2025-04',
+            'nominal' => '25000.00',
+            'status' => 'belum',
+        ]);
+
+        $pembayaran = $this->iuranService->catatPembayaran(
+            $tagihan,
+            '2025-04-01',
+            '25000.00',
+            'tunai',
+            $this->bendahara()->id
+        );
+
+        $this->loginSebagai('bendahara');
+
+        $nomor = $pembayaran->fresh('kwitansi')->kwitansi->nomor;
+
+        $response = $this->get(route('iuran.pembayaran.kwitansi', $pembayaran));
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('content-type'));
+        $isiPdf = method_exists($response->baseResponse, 'getContent')
+            ? (string) $response->baseResponse->getContent()
+            : $response->getContent();
+        $this->assertStringContainsString($nomor, $isiPdf);
+    }
+
+    public function test_halaman_kas_menampilkan_saldo_akhir_sesuai_layanan(): void
+    {
+        $rt = $this->rtUtama();
+        $tahun = 2025;
+
+        KasSaldoAwal::query()->create([
+            'tenant_id' => $rt->id,
+            'tahun' => $tahun,
+            'pos' => 'tunai',
+            'jumlah' => '100000.00',
+        ]);
+
+        KasTransaksi::query()->create([
+            'tenant_id' => $rt->id,
+            'tanggal' => '2025-01-15',
+            'jenis' => 'masuk',
+            'pos' => 'tunai',
+            'uraian' => 'Test masuk',
+            'jumlah' => '50000.00',
+        ]);
+
+        $saldo = $this->kasService->saldoAkhir($rt->id, $tahun, 'tunai');
+        $teksSaldo = FormatUang::penuh($saldo);
+
+        $this->loginSebagai('bendahara');
+
+        $this->get(route('kas.index', ['tahun' => $tahun, 'pos' => 'tunai']))
+            ->assertOk()
+            ->assertSee($teksSaldo, false);
+    }
+
+    public function test_hapus_transaksi_kas_dari_pembayaran_iuran_ditolak(): void
+    {
+        $keluarga = $this->buatKeluargaAktif();
+        $jenis = $this->buatJenisIuran();
+        $tagihan = IuranTagihan::query()->create([
+            'tenant_id' => $keluarga->tenant_id,
+            'keluarga_id' => $keluarga->id,
+            'iuran_jenis_id' => $jenis->id,
+            'periode' => '2025-05',
+            'nominal' => '30000.00',
+            'status' => 'belum',
+        ]);
+
+        $pembayaran = $this->iuranService->catatPembayaran(
+            $tagihan,
+            '2025-05-01',
+            '30000.00',
+            'tunai',
+            $this->bendahara()->id
+        );
+
+        $kas = KasTransaksi::query()->where('iuran_pembayaran_id', $pembayaran->id)->firstOrFail();
+
+        $this->loginSebagai('bendahara');
+
+        $this->delete(route('kas.transaksi.destroy', $kas))
+            ->assertRedirect()
+            ->assertSessionHas('status', 'Transaksi kas yang berasal dari pembayaran iuran tidak dapat dihapus.');
+
+        $this->assertDatabaseHas('kas_transaksi', ['id' => $kas->id]);
+    }
+
+    public function test_halaman_iuran_menampilkan_nama_kepala_keluarga(): void
+    {
+        $rt = $this->rtUtama();
+        $jenis = $this->buatJenisIuran();
+
+        $keluarga = Keluarga::query()->create([
+            'tenant_id' => $rt->id,
+            'no_kk' => '3201234567890999',
+            'alamat' => 'Jl. Grid',
+            'status_hunian' => 'milik',
+            'status' => 'aktif',
+        ]);
+
+        Warga::query()->create([
+            'tenant_id' => $rt->id,
+            'keluarga_id' => $keluarga->id,
+            'nik' => '3276012345678999',
+            'nama' => 'Andi Grid Test',
+            'hubungan' => 'kepala',
+            'jenis_kelamin' => 'L',
+            'status' => 'aktif',
+        ]);
+
+        IuranTagihan::query()->create([
+            'tenant_id' => $rt->id,
+            'keluarga_id' => $keluarga->id,
+            'iuran_jenis_id' => $jenis->id,
+            'periode' => '2025-01',
+            'nominal' => '50000.00',
+            'status' => 'belum',
+        ]);
+
+        $this->loginSebagai('pengurus');
+
+        $this->get(route('iuran.index', ['tahun' => 2025, 'jenis' => $jenis->id]))
+            ->assertOk()
+            ->assertSee('Andi Grid Test', false);
+    }
+
+    public function test_filter_tahun_pada_grid_iuran_bekerja(): void
+    {
+        $keluarga = $this->buatKeluargaAktif();
+        $jenis = $this->buatJenisIuran();
+
+        IuranTagihan::query()->create([
+            'tenant_id' => $keluarga->tenant_id,
+            'keluarga_id' => $keluarga->id,
+            'iuran_jenis_id' => $jenis->id,
+            'periode' => '2024-06',
+            'nominal' => '50000.00',
+            'status' => 'lunas',
+        ]);
+
+        IuranTagihan::query()->create([
+            'tenant_id' => $keluarga->tenant_id,
+            'keluarga_id' => $keluarga->id,
+            'iuran_jenis_id' => $jenis->id,
+            'periode' => '2025-06',
+            'nominal' => '50000.00',
+            'status' => 'belum',
+        ]);
+
+        $this->loginSebagai('bendahara');
+
+        $grid2024 = $this->iuranService->gridBulanan($keluarga->tenant_id, 2024, $jenis->id);
+        $grid2025 = $this->iuranService->gridBulanan($keluarga->tenant_id, 2025, $jenis->id);
+
+        $baris2024 = collect($grid2024)->firstWhere('keluarga_id', $keluarga->id);
+        $baris2025 = collect($grid2025)->firstWhere('keluarga_id', $keluarga->id);
+
+        $this->assertSame('lunas', $baris2024['bulan'][6]);
+        $this->assertSame('belum', $baris2025['bulan'][6]);
+
+        $this->get(route('iuran.index', ['tahun' => 2024, 'jenis' => $jenis->id]))
+            ->assertOk();
+
+        $ringkasan2024 = $this->iuranService->ringkasanTahun($keluarga->tenant_id, 2024, $jenis->id);
+        $ringkasan2025 = $this->iuranService->ringkasanTahun($keluarga->tenant_id, 2025, $jenis->id);
+
+        $this->assertNotSame($ringkasan2024['total_tagihan'], $ringkasan2025['total_tagihan']);
     }
 }
