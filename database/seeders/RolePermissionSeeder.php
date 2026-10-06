@@ -168,7 +168,11 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         if (! $user->exists) {
-            $user->password = Hash::make('password');
+            $plainPassword = $data['username'] === 'admin'
+                ? (config('app.seed_admin_password') ?? 'password')
+                : 'password';
+
+            $user->password = Hash::make($plainPassword);
         }
 
         $user->save();

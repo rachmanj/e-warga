@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seeder Admin Password
+    |--------------------------------------------------------------------------
+    |
+    | Sandi awal akun admin saat RolePermissionSeeder membuat pengguna baru.
+    | Nilai ini harus dibaca lewat config(), bukan env(), agar tetap tersedia
+    | setelah php artisan config:cache di produksi.
+    |
+    */
+
+    'seed_admin_password' => env('ADMIN_PASSWORD'),
+
 ];
