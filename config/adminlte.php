@@ -37,7 +37,7 @@ return [
     |
     */
 
-    'title' => 'AdminLTE 4',
+    'title' => 'e-Warga',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -77,8 +77,8 @@ return [
     |
     */
 
-    'logo' => '<b>Admin</b>LTE',
-    'logo_img' => 'vendor/adminlte/dist/assets/img/AdminLTELogo.png',
+    'logo' => '<b>e</b>-Warga',
+    'logo_img' => '',
     'logo_img_class' => 'brand-image opacity-75 shadow',
     'logo_img_xl' => null,
     'logo_img_xl_class' => 'brand-image-xs opacity-75',
@@ -190,7 +190,7 @@ return [
     */
 
     'use_route_url' => false,
-    'dashboard_url' => 'home',
+    'dashboard_url' => 'dashboard',
     'logout_url' => 'logout',
 
     // The HTTP method spoofed on the logout form. Set it to 'GET' when your
@@ -198,8 +198,8 @@ return [
 
     'logout_method' => null,
     'login_url' => 'login',
-    'register_url' => 'register',
-    'password_reset_url' => 'password/reset',
+    'register_url' => false,
+    'password_reset_url' => false,
     'password_email_url' => 'password/email',
     'profile_url' => false,
 
@@ -664,7 +664,14 @@ return [
     // The custom properties applied on the whole document. For example:
     // 'css_variables' => ['--bs-primary' => '#6f42c1'],
 
-    'css_variables' => [],
+    'css_variables' => [
+        '--bs-primary' => '#0f766e',
+        '--bs-primary-rgb' => '15, 118, 110',
+        '--bs-link-color' => '#0f766e',
+        '--bs-link-hover-color' => '#0d9488',
+        '--lte-sidebar-bg' => '#0f766e',
+        '--lte-sidebar-color' => '#ecfdf5',
+    ],
 
     // The selector of the block above. Only ':root' and 'body' are accepted,
     // any other value falls back to ':root'.
@@ -676,7 +683,12 @@ return [
     // are emitted with a matching specificity. For example:
     // 'css_variables_sidebar' => ['--lte-sidebar-bg' => '#1f2d3d'],
 
-    'css_variables_sidebar' => [],
+    'css_variables_sidebar' => [
+        '--lte-sidebar-bg' => '#0f766e',
+        '--lte-sidebar-color' => '#ecfdf5',
+        '--lte-sidebar-hover-bg' => '#115e59',
+        '--lte-sidebar-active-bg' => '#10b981',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -693,12 +705,12 @@ return [
     |
     */
 
-    'classes_auth_card' => 'card-outline card-primary',
+    'classes_auth_card' => 'card-outline',
     'classes_auth_header' => '',
     'classes_auth_body' => '',
     'classes_auth_footer' => '',
     'classes_auth_icon' => '',
-    'classes_auth_btn' => 'btn-primary',
+    'classes_auth_btn' => 'btn-primary border-0',
 
     // The social login buttons of the authentication views. Every entry
     // accepts an 'url', a 'text', an 'icon' and a 'theme'. Leave the array
@@ -763,105 +775,7 @@ return [
     |
     */
 
-    'menu' => [
-        // Navbar items:
-        [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
-        ],
-        [
-            'type' => 'darkmode-widget',
-            'topnav_right' => true,
-        ],
-        [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
-        ],
-
-        // Sidebar items:
-        [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
-        [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
-        ],
-        [
-            'text' => 'pages',
-            'url' => 'admin/pages',
-            'icon' => 'bi bi-file-earmark',
-            'label' => 4,
-            'label_color' => 'success',
-        ],
-        ['header' => 'account_settings'],
-        [
-            'text' => 'profile',
-            'url' => 'admin/settings',
-            'icon' => 'bi bi-person',
-        ],
-        [
-            'text' => 'change_password',
-            'url' => 'admin/settings',
-            'icon' => 'bi bi-lock',
-        ],
-        [
-            'text' => 'multilevel',
-            'icon' => 'bi bi-share',
-            'submenu' => [
-                [
-                    'text' => 'level_one',
-                    'url' => '#',
-                ],
-                [
-                    'text' => 'level_one',
-                    'url' => '#',
-                    'submenu' => [
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                        ],
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                            'submenu' => [
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                [
-                    'text' => 'level_one',
-                    'url' => '#',
-                ],
-            ],
-        ],
-        ['header' => 'labels'],
-        [
-            'text' => 'important',
-            'icon_color' => 'danger',
-            'url' => '#',
-        ],
-        [
-            'text' => 'warning',
-            'icon_color' => 'warning',
-            'url' => '#',
-        ],
-        [
-            'text' => 'information',
-            'icon_color' => 'info',
-            'url' => '#',
-        ],
-    ],
+    'menu' => [],
 
     /*
     |--------------------------------------------------------------------------
