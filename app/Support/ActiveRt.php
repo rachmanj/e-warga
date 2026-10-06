@@ -12,6 +12,10 @@ class ActiveRt
 
     public static function tenantScopeId(): ?int
     {
+        if (! Auth::hasUser()) {
+            return null;
+        }
+
         $user = Auth::user();
 
         if (! $user instanceof User) {
