@@ -1,0 +1,20 @@
+services:
+  app:
+    image: e-warga-app:latest
+    container_name: e-warga-app-1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"
+    env_file:
+      - .env.production
+    volumes:
+      - e-warga-storage:/var/www/storage
+    networks:
+      - pkk-digital_default
+
+networks:
+  pkk-digital_default:
+    external: true
+
+volumes:
+  e-warga-storage:
