@@ -2,7 +2,7 @@
     (() => {
         'use strict';
 
-        window._EwargaReady = (callback) => {
+        window._Ewarga_Ready = (callback) => {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', callback, { once: true });
             } else {
@@ -10,22 +10,19 @@
             }
         };
 
-        window._EwargaOnce = (key, callback) => {
-            window._EwargaOnceKeys = window._EwargaOnceKeys || {};
+        window._Ewarga_Once = (key, callback) => {
+            window._Ewarga_OnceKeys = window._Ewarga_OnceKeys || {};
 
-            if (window._EwargaOnceKeys[key]) {
+            if (window._Ewarga_OnceKeys[key]) {
                 return;
             }
 
-            window._EwargaOnceKeys[key] = true;
+            window._Ewarga_OnceKeys[key] = true;
             callback();
         };
 
-        window._AdminLTE_Ready = window._EwargaReady;
-        window._AdminLTE_Once = window._EwargaOnce;
-
         @if($spaNavigation)
-        window._EwargaOnce('spa-navigation', () => {
+        window._Ewarga_Once('spa-navigation', () => {
             document.addEventListener('livewire:navigated', () => {
                 if (typeof adminlte !== 'undefined' && typeof adminlte.initialize === 'function') {
                     adminlte.initialize();
