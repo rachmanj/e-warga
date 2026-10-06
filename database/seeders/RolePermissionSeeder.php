@@ -21,8 +21,11 @@ class RolePermissionSeeder extends Seeder
         'kelola_warga',
         'lihat_dokumen',
         'kelola_dokumen',
+        'lihat_iuran',
+        'kelola_iuran',
         'lihat_kas',
         'kelola_kas',
+        'lihat_tunggakan',
         'lihat_surat',
         'kelola_surat',
         'terbitkan_surat',
@@ -46,8 +49,9 @@ class RolePermissionSeeder extends Seeder
             'kelola_rt',
             'lihat_warga',
             'lihat_dokumen',
+            'lihat_iuran',
             'lihat_kas',
-            'kelola_kas',
+            'lihat_tunggakan',
             'lihat_surat',
             'kelola_surat',
             'terbitkan_surat',
@@ -60,6 +64,9 @@ class RolePermissionSeeder extends Seeder
             'kelola_warga',
             'lihat_dokumen',
             'kelola_dokumen',
+            'lihat_iuran',
+            'lihat_kas',
+            'lihat_tunggakan',
             'lihat_surat',
             'kelola_surat',
             'ubah_sandi',
@@ -68,8 +75,11 @@ class RolePermissionSeeder extends Seeder
         $bendahara = Role::findOrCreate('bendahara');
         $bendahara->syncPermissions([
             'lihat_warga',
+            'kelola_iuran',
+            'lihat_iuran',
             'lihat_kas',
             'kelola_kas',
+            'lihat_tunggakan',
             'lihat_surat',
             'ubah_sandi',
         ]);
@@ -77,7 +87,8 @@ class RolePermissionSeeder extends Seeder
         $pengurus = Role::findOrCreate('pengurus');
         $pengurus->syncPermissions([
             'lihat_warga',
-            'lihat_kas',
+            'lihat_iuran',
+            'lihat_tunggakan',
             'lihat_surat',
             'ubah_sandi',
         ]);
