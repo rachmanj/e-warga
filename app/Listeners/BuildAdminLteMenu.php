@@ -32,8 +32,9 @@ class BuildAdminLteMenu
             ],
             [
                 'text' => 'Surat',
-                'url' => '#',
+                'route' => 'surat.index',
                 'icon' => 'bi bi-envelope-paper',
+                'can' => 'lihat_surat',
             ],
             [
                 'text' => 'Pengguna',

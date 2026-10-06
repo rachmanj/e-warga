@@ -25,6 +25,7 @@ class RolePermissionSeeder extends Seeder
         'kelola_kas',
         'lihat_surat',
         'kelola_surat',
+        'terbitkan_surat',
         'kelola_pengguna',
         'ubah_sandi',
     ];
@@ -49,6 +50,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_kas',
             'lihat_surat',
             'kelola_surat',
+            'terbitkan_surat',
             'ubah_sandi',
         ]);
 
@@ -68,6 +70,7 @@ class RolePermissionSeeder extends Seeder
             'lihat_warga',
             'lihat_kas',
             'kelola_kas',
+            'lihat_surat',
             'ubah_sandi',
         ]);
 

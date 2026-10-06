@@ -6,6 +6,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DokumenWargaController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PenggunaController;
+use App\Http\Controllers\SuratController;
+use App\Http\Controllers\VerifikasiSuratController;
 use App\Http\Controllers\RtAktifController;
 use App\Http\Controllers\WargaAnggotaController;
 use App\Http\Controllers\WargaController;
@@ -13,6 +15,10 @@ use App\Http\Controllers\WargaMutasiController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
+
+Route::get('verifikasi/{kode}', [VerifikasiSuratController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('verifikasi.show');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [LoginController::class, 'create'])->name('login');
@@ -66,5 +72,23 @@ Route::middleware('auth')->group(function (): void {
         Route::get('dokumen/{dokumen}/berkas', [DokumenWargaController::class, 'berkas'])
             ->middleware('permission:lihat_dokumen')
             ->name('dokumen.berkas');
+
+        Route::middleware('permission:kelola_surat')->group(function (): void {
+            Route::get('surat/create', [SuratController::class, 'create'])->name('surat.create');
+            Route::post('surat', [SuratController::class, 'store'])->name('surat.store');
+            Route::post('surat/{surat}/setujui', [SuratController::class, 'setujui'])->name('surat.setujui');
+            Route::post('surat/{surat}/tolak', [SuratController::class, 'tolak'])->name('surat.tolak');
+            Route::post('surat/{surat}/catatan', [SuratController::class, 'catatan'])->name('surat.catatan');
+        });
+
+        Route::middleware('permission:lihat_surat')->group(function (): void {
+            Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
+            Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+            Route::get('surat/{surat}/pdf', [SuratController::class, 'pdf'])->name('surat.pdf');
+        });
+
+        Route::post('surat/{surat}/terbitkan', [SuratController::class, 'terbitkan'])
+            ->middleware('permission:terbitkan_surat')
+            ->name('surat.terbitkan');
     });
 });
