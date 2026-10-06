@@ -16,8 +16,9 @@ class BuildAdminLteMenu
             ],
             [
                 'text' => 'Warga',
-                'url' => '#',
+                'route' => 'warga.index',
                 'icon' => 'bi bi-people',
+                'can' => 'lihat_warga',
             ],
             [
                 'text' => 'Iuran',

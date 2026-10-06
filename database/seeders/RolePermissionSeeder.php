@@ -19,6 +19,8 @@ class RolePermissionSeeder extends Seeder
         'kelola_rt',
         'lihat_warga',
         'kelola_warga',
+        'lihat_dokumen',
+        'kelola_dokumen',
         'lihat_kas',
         'kelola_kas',
         'lihat_surat',
@@ -42,7 +44,7 @@ class RolePermissionSeeder extends Seeder
         $ketua->syncPermissions([
             'kelola_rt',
             'lihat_warga',
-            'kelola_warga',
+            'lihat_dokumen',
             'lihat_kas',
             'kelola_kas',
             'lihat_surat',
@@ -54,6 +56,8 @@ class RolePermissionSeeder extends Seeder
         $sekretaris->syncPermissions([
             'lihat_warga',
             'kelola_warga',
+            'lihat_dokumen',
+            'kelola_dokumen',
             'lihat_surat',
             'kelola_surat',
             'ubah_sandi',
