@@ -21,6 +21,71 @@ class KopRt
         return ! preg_match('/^-+$/', $teks);
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function barisKop(Rt $rt): array
+    {
+        $baris = [];
+
+        if (self::terisi($rt->kecamatan)) {
+            $baris[] = mb_strtoupper(trim((string) $rt->kecamatan));
+        }
+
+        if (self::terisi($rt->kelurahan)) {
+            $baris[] = 'KELURAHAN '.mb_strtoupper(trim((string) $rt->kelurahan));
+        }
+
+        $sufiksRt = self::sufiksNamaRtUntukKop($rt->nama);
+        if ($sufiksRt !== null) {
+            $baris[] = 'RUKUN TETANGGA '.$sufiksRt;
+        }
+
+        $alamatKop = self::barisAlamatSekretariat($rt);
+        if ($alamatKop !== null) {
+            $baris[] = $alamatKop;
+        }
+
+        if (self::terisi($rt->no_hp)) {
+            $baris[] = 'No. Hp. '.trim((string) $rt->no_hp);
+        }
+
+        return $baris;
+    }
+
+    public static function sufiksNamaRtUntukKop(string $nama): ?string
+    {
+        $nama = trim($nama);
+        if ($nama === '') {
+            return null;
+        }
+
+        if (preg_match('/\d+/', $nama, $matches)) {
+            return $matches[0];
+        }
+
+        return $nama;
+    }
+
+    public static function barisAlamatSekretariat(Rt $rt): ?string
+    {
+        $bagian = [];
+
+        if (self::terisi($rt->alamat_sekretariat)) {
+            $bagian[] = trim((string) $rt->alamat_sekretariat);
+        }
+
+        if (self::terisi($rt->kode_pos)) {
+            $bagian[] = trim((string) $rt->kode_pos);
+        }
+
+        if ($bagian === []) {
+            return null;
+        }
+
+        return implode(' ', $bagian);
+    }
+
     public static function barisWilayah(Rt $rt): string
     {
         $bagian = [];

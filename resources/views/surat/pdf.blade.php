@@ -18,12 +18,9 @@
 <body>
     <div class="kop">
         <h2>{{ $rt->nama }}</h2>
-        @if (($barisWilayah = KopRt::barisWilayah($rt)) !== '')
-            <p>{{ $barisWilayah }}</p>
-        @endif
-        @if (($barisKota = KopRt::barisKota($rt)) !== null)
-            <p>{{ $barisKota }}</p>
-        @endif
+        @foreach (KopRt::barisKop($rt) as $barisKop)
+            <p>{{ $barisKop }}</p>
+        @endforeach
     </div>
 
     <div class="nomor">Nomor: {{ $surat->nomor_lengkap }}</div>

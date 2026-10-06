@@ -67,6 +67,136 @@ class Rt32WargaCsvImporter
     }
 
     /**
+     * @return array{
+     *     warga_diperbarui: int,
+     *     warga_dilewati: int,
+     *     warga_tidak_ditemukan: int,
+     *     mode: string,
+     * }
+     */
+    public function perbaruiProfil(string $filePath, int $tenantId, bool $execute): array
+    {
+        Rt::query()->findOrFail($tenantId);
+
+        $families = $this->parseAndGroup($filePath);
+
+        $stats = [
+            'warga_diperbarui' => 0,
+            'warga_dilewati' => 0,
+            'warga_tidak_ditemukan' => 0,
+            'mode' => $execute ? 'execute' : 'dry-run',
+        ];
+
+        $process = function () use ($families, $tenantId, $execute, &$stats): void {
+            foreach ($families as $family) {
+                $this->perbaruiProfilKeluarga($family, $tenantId, $execute, $stats);
+            }
+        };
+
+        if ($execute) {
+            DB::transaction($process);
+        } else {
+            $process();
+        }
+
+        return $stats;
+    }
+
+    /**
+     * @param  array{
+     *     keluarga_no_kk: string,
+     *     keluarga_nama_kepala: string,
+     *     members: list<array<string, string>>,
+     * }  $family
+     * @param  array<string, mixed>  $stats
+     */
+    private function perbaruiProfilKeluarga(array $family, int $tenantId, bool $execute, array &$stats): void
+    {
+        $keluarga = $this->findExistingKeluargaUntukProfil($tenantId, $family['keluarga_no_kk'], $family['keluarga_nama_kepala']);
+
+        foreach ($family['members'] as $member) {
+            $namaAnggota = trim($member['nama_anggota']);
+            if ($namaAnggota === '') {
+                continue;
+            }
+
+            if ($keluarga === null) {
+                $stats['warga_tidak_ditemukan']++;
+
+                continue;
+            }
+
+            $warga = $keluarga->warga()
+                ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower($namaAnggota)])
+                ->first();
+
+            if ($warga === null) {
+                $stats['warga_tidak_ditemukan']++;
+
+                continue;
+            }
+
+            $perubahan = $this->profilDariBarisCsv($member);
+            if ($perubahan === []) {
+                $stats['warga_dilewati']++;
+
+                continue;
+            }
+
+            $adaPerubahan = false;
+            foreach ($perubahan as $kolom => $nilai) {
+                if ($warga->{$kolom} !== $nilai) {
+                    $adaPerubahan = true;
+                    break;
+                }
+            }
+
+            if (! $adaPerubahan) {
+                $stats['warga_dilewati']++;
+
+                continue;
+            }
+
+            $stats['warga_diperbarui']++;
+
+            if (! $execute) {
+                continue;
+            }
+
+            $warga->fill($perubahan);
+            $warga->save();
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $member
+     * @return array<string, string>
+     */
+    private function profilDariBarisCsv(array $member): array
+    {
+        $hasil = [];
+
+        $tempatLahir = trim($member['tempat_lahir'] ?? '');
+        if ($tempatLahir !== '') {
+            $hasil['tempat_lahir'] = $tempatLahir;
+        }
+
+        $pendidikan = trim($member['pendidikan'] ?? '');
+        if ($pendidikan !== '') {
+            $hasil['pendidikan'] = $pendidikan;
+        }
+
+        $golDarah = trim($member['gol_darah'] ?? '');
+        if ($golDarah !== '') {
+            $hasil['golongan_darah'] = $golDarah;
+        }
+
+        $hasil['kewarganegaraan'] = 'WNI';
+
+        return $hasil;
+    }
+
+    /**
      * @return array<int, array{
      *     keluarga_index: string,
      *     keluarga_no_kk: string,
@@ -241,6 +371,34 @@ class Rt32WargaCsvImporter
             ->where('tenant_id', $tenantId)
             ->whereHas('warga', function ($query) use ($namaKepala): void {
                 $query->where('hubungan', 'kepala')->where('nama', $namaKepala);
+            })
+            ->first();
+    }
+
+    private function findExistingKeluargaUntukProfil(int $tenantId, string $noKk, string $namaKepala): ?Keluarga
+    {
+        if ($noKk !== '') {
+            $hash = $this->identifierHmac($noKk);
+
+            return Keluarga::query()
+                ->where('tenant_id', $tenantId)
+                ->where('no_kk_hash', $hash)
+                ->first();
+        }
+
+        $namaKepala = trim($namaKepala);
+        if ($namaKepala === '') {
+            return null;
+        }
+
+        $namaNormal = mb_strtolower($namaKepala);
+
+        return Keluarga::query()
+            ->where('tenant_id', $tenantId)
+            ->whereHas('warga', function ($query) use ($namaNormal): void {
+                $query
+                    ->where('hubungan', 'kepala')
+                    ->whereRaw('LOWER(TRIM(nama)) = ?', [$namaNormal]);
             })
             ->first();
     }

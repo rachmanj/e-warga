@@ -36,6 +36,21 @@ Nomor surat: {{nomor}}
 {{kota}}, {{tanggal_terbit}}
 TXT;
 
+    private string $templateBodySuratPengantar = <<<'TXT'
+Nomor: {{nomor}}
+
+Yang bertanda tangan di bawah ini, Ketua {{nama_rt}}, Kelurahan {{kelurahan}}, {{kota}}, dengan ini menerangkan bahwa:
+
+Nama              : {{nama}}
+NIK               : {{nik_tersamar}}
+Tempat/Tgl. Lahir : {{tempat_lahir}}, {{tanggal_lahir}}
+Alamat            : {{alamat}}
+
+Surat pengantar ini dibuat untuk keperluan: {{keperluan}}.
+
+{{kota}}, {{tanggal_terbit}}
+TXT;
+
     public function run(): void
     {
         Rt::query()->each(function (Rt $rt): void {
@@ -55,6 +70,21 @@ TXT;
                     ]
                 );
             }
+
+            SuratJenis::query()->withoutGlobalScope('tenant')->firstOrCreate(
+                [
+                    'tenant_id' => $rt->id,
+                    'kode' => 'SP',
+                ],
+                [
+                    'nama' => 'Surat Pengantar',
+                    'format_nomor' => '{urut}/GSI-32/{tahun}',
+                    'template_body' => $this->templateBodySuratPengantar,
+                    'butuh_data_warga' => true,
+                    'aktif' => true,
+                    'urutan' => 0,
+                ]
+            );
         });
     }
 }
