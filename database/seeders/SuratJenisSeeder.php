@@ -37,7 +37,7 @@ Nomor surat: {{nomor}}
 TXT;
 
     private string $templateBodySuratPengantar = <<<'TXT'
-Yang bertanda tangan di bawah ini, Ketua {{nama_rt}}, Kelurahan {{kelurahan}}, {{kota}}, dengan ini menerangkan bahwa:
+Bersama ini kami mengantarkan warga {{nama_rt}} yang disebutkan dibawah ini :
 
 Nama                  : {{nama}}
 No. KTP               : {{nik}}
@@ -54,7 +54,7 @@ Golongan Darah        : {{pilihan_golongan_darah}}
 Keperluan untuk mengurus:
 {{daftar_keperluan}}
 
-Pertimbangan Kartu Keluarga:
+Sebagai pertimbangan diberitahukan bahwa yang bersangkutan :
 {{pertimbangan_kk}}
 
 Demikian Surat Pengantar ini dibuat agar dapat dipergunakan sebagaimana mestinya.
@@ -87,7 +87,7 @@ TXT;
                 ],
                 [
                     'nama' => 'Surat Pengantar',
-                    'format_nomor' => '{urut}/GSI-32/{tahun}',
+                    'format_nomor' => '{urut}/GSI-32/{tahun2}',
                     'template_body' => $this->templateBodySuratPengantar,
                     'butuh_data_warga' => true,
                     'aktif' => true,
@@ -96,12 +96,24 @@ TXT;
             );
 
             $body = $sp->template_body ?? '';
-            $masihTemplateLama = str_contains($body, '{{tempat_lahir}}')
-                || str_contains($body, '{{tanggal_lahir}}')
-                || str_contains($body, '{{nik_tersamar}}');
+            $sudahKalimatPembukaBaru = str_contains($body, 'Bersama ini kami mengantarkan warga');
 
-            if ($masihTemplateLama) {
-                $sp->update(['template_body' => $this->templateBodySuratPengantar]);
+            if (! $sudahKalimatPembukaBaru) {
+                $masihTemplateLama = str_contains($body, 'Yang bertanda tangan di bawah ini')
+                    || str_contains($body, 'Pertimbangan Kartu Keluarga')
+                    || str_contains($body, '{{tempat_lahir}}')
+                    || str_contains($body, '{{tanggal_lahir}}')
+                    || str_contains($body, '{{nik_tersamar}}')
+                    || ! str_contains($body, '{{daftar_keperluan}}')
+                    || ! str_contains($body, '{{pertimbangan_kk}}');
+
+                if ($masihTemplateLama) {
+                    $sp->update(['template_body' => $this->templateBodySuratPengantar]);
+                }
+            }
+
+            if ($sp->format_nomor === '{urut}/GSI-32/{tahun}') {
+                $sp->update(['format_nomor' => '{urut}/GSI-32/{tahun2}']);
             }
         });
     }

@@ -117,7 +117,7 @@ class WargaProfilSuratTest extends TestCase
 
         $this->assertNotNull($sp);
         $this->assertSame('Surat Pengantar', $sp->nama);
-        $this->assertSame('{urut}/GSI-32/{tahun}', $sp->format_nomor);
+        $this->assertSame('{urut}/GSI-32/{tahun2}', $sp->format_nomor);
         $this->assertTrue($sp->butuh_data_warga);
         $this->assertTrue($sp->aktif);
         $this->assertSame(0, $sp->urutan);

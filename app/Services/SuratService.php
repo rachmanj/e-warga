@@ -448,6 +448,7 @@ class SuratService
             '{rt}' => $rt->nama,
             '{rw}' => $rt->rw,
             '{tahun}' => (string) $tahun,
+            '{tahun2}' => sprintf('%02d', $tahun % 100),
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $format);

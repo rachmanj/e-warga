@@ -191,4 +191,38 @@ class SuratPengantarTest extends TestCase
 
         $this->assertStringContainsString('<strong>✓ Universitas atau Akademi</strong>', $html);
     }
+
+    public function test_sp_template_memakai_kalimat_pembuka_dan_judul_pertimbangan_resmi(): void
+    {
+        $surat = $this->terbitkanSuratPengantar();
+        $rt = $this->rtUtama();
+        $html = $this->app->make(SuratService::class)->renderTemplate($surat, $rt);
+
+        $this->assertStringContainsString(
+            'Bersama ini kami mengantarkan warga '.$rt->nama.' yang disebutkan dibawah ini :',
+            $html
+        );
+        $this->assertStringNotContainsString('Yang bertanda tangan di bawah ini', $html);
+        $this->assertStringContainsString(
+            'Sebagai pertimbangan diberitahukan bahwa yang bersangkutan :',
+            $html
+        );
+        $this->assertStringNotContainsString('Pertimbangan Kartu Keluarga', $html);
+    }
+
+    public function test_sp_nomor_surat_memakai_tahun_dua_digit(): void
+    {
+        $surat = $this->terbitkanSuratPengantar();
+
+        $this->assertSame('001/GSI-32/26', $surat->nomor_lengkap);
+        $this->assertStringNotContainsString('/2026', $surat->nomor_lengkap ?? '');
+    }
+
+    public function test_sp_keperluan_keterangan_domisili_ditandai(): void
+    {
+        $surat = $this->terbitkanSuratPengantar([], ['keterangan_domisili']);
+        $html = $this->app->make(SuratService::class)->renderTemplate($surat, $this->rtUtama());
+
+        $this->assertStringContainsString('<strong>✓ Keterangan Domisili</strong>', $html);
+    }
 }
