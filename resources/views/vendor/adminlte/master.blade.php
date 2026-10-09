@@ -260,6 +260,12 @@
         <meta name="msapplication-TileImage" content="{{ asset('favicons/ms-icon-144x144.png') }}">
     @endif
 
+    {{-- PWA --}}
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0f766e">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+
 </head>
 
 <body class="@yield('classes_body')" @yield('body_data')>
@@ -354,6 +360,8 @@
 
     {{-- Custom Scripts --}}
     @yield('adminlte_js')
+
+    <script src="/js/pwa.js"></script>
 
 </body>
 
