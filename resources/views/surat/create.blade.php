@@ -17,7 +17,7 @@
                     <select name="surat_jenis_id" id="surat_jenis_id" class="form-select @error('surat_jenis_id') is-invalid @enderror" required>
                         <option value="">— Pilih jenis —</option>
                         @foreach ($jenisList as $jenis)
-                            <option value="{{ $jenis->id }}" data-butuh-warga="{{ $jenis->butuh_data_warga ? '1' : '0' }}" @selected(old('surat_jenis_id') == $jenis->id)>
+                            <option value="{{ $jenis->id }}" data-butuh-warga="{{ $jenis->butuh_data_warga ? '1' : '0' }}" data-kode="{{ $jenis->kode }}" @selected(old('surat_jenis_id') == $jenis->id)>
                                 {{ $jenis->kode }} — {{ $jenis->nama }}
                             </option>
                         @endforeach
@@ -46,10 +46,22 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3" id="blok-keperluan-teks">
                     <label class="form-label">Keperluan <span class="text-danger">*</span></label>
-                    <textarea name="keperluan" rows="4" class="form-control @error('keperluan') is-invalid @enderror" required>{{ old('keperluan') }}</textarea>
+                    <textarea name="keperluan" id="keperluan_teks" rows="4" class="form-control @error('keperluan') is-invalid @enderror">{{ old('keperluan') }}</textarea>
                     @error('keperluan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="mb-3 d-none" id="blok-keperluan-sp">
+                    <label class="form-label d-block">Keperluan untuk mengurus <span class="text-danger">*</span></label>
+                    @php $oldKeperluanSp = old('keperluan_sp', []); @endphp
+                    @foreach ($keperluanSp as $kode => $label)
+                        <div class="form-check">
+                            <input class="form-check-input @error('keperluan_sp') is-invalid @enderror" type="checkbox" name="keperluan_sp[]" value="{{ $kode }}" id="keperluan_sp_{{ $kode }}" @checked(in_array($kode, $oldKeperluanSp, true))>
+                            <label class="form-check-label" for="keperluan_sp_{{ $kode }}">{{ $label }}</label>
+                        </div>
+                    @endforeach
+                    @error('keperluan_sp')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="d-flex gap-2">
@@ -81,7 +93,29 @@
         @endif
     }
 
+    function sesuaikanFormJenis() {
+        const select = document.getElementById('surat_jenis_id');
+        const option = select.options[select.selectedIndex];
+        const kode = option ? option.getAttribute('data-kode') : '';
+        const isSp = kode === 'SP';
+        const blokTeks = document.getElementById('blok-keperluan-teks');
+        const blokSp = document.getElementById('blok-keperluan-sp');
+        const textarea = document.getElementById('keperluan_teks');
+
+        if (isSp) {
+            blokTeks.classList.add('d-none');
+            blokSp.classList.remove('d-none');
+            textarea.removeAttribute('required');
+        } else {
+            blokTeks.classList.remove('d-none');
+            blokSp.classList.add('d-none');
+            textarea.setAttribute('required', 'required');
+        }
+    }
+
     document.getElementById('keluarga_id').addEventListener('change', muatAnggota);
+    document.getElementById('surat_jenis_id').addEventListener('change', sesuaikanFormJenis);
     muatAnggota();
+    sesuaikanFormJenis();
 </script>
 @endpush

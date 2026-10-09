@@ -12,6 +12,7 @@ use App\Models\SuratJenis;
 use App\Services\SuratService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -70,6 +71,7 @@ class SuratController extends Controller
         return view('surat.create', [
             'jenisList' => $jenisList,
             'keluarga' => $keluarga,
+            'keperluanSp' => SuratService::KEPERLUAN_SP,
             'anggotaPerKeluarga' => $keluarga->mapWithKeys(
                 fn ($kk) => [$kk->id => $kk->warga->map(fn ($w) => ['id' => $w->id, 'nama' => $w->nama])->values()]
             ),
@@ -78,12 +80,28 @@ class SuratController extends Controller
 
     public function store(StoreSuratRequest $request): RedirectResponse
     {
+        $jenis = SuratJenis::query()->findOrFail($request->integer('surat_jenis_id'));
+
+        $dataTambahan = null;
+        $keperluan = $request->string('keperluan')->toString();
+
+        if ($jenis->kode === 'SP') {
+            $kodes = array_values(array_unique(Arr::wrap($request->input('keperluan_sp', []))));
+            $dataTambahan = ['keperluan' => $kodes];
+            $label = array_map(
+                fn (string $kode) => SuratService::KEPERLUAN_SP[$kode] ?? $kode,
+                $kodes
+            );
+            $keperluan = implode('; ', $label);
+        }
+
         $surat = Surat::query()->create([
             'surat_jenis_id' => $request->integer('surat_jenis_id'),
             'keluarga_id' => $request->input('keluarga_id'),
             'warga_id' => $request->input('warga_id'),
             'tahun' => (int) now()->format('Y'),
-            'keperluan' => $request->string('keperluan')->toString(),
+            'keperluan' => $keperluan,
+            'data_tambahan' => $dataTambahan,
             'tanggal_ajuan' => now()->toDateString(),
             'status' => 'diajukan',
             'dibuat_oleh' => $request->user()->id,

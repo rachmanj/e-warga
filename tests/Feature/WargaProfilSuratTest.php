@@ -121,7 +121,8 @@ class WargaProfilSuratTest extends TestCase
         $this->assertTrue($sp->butuh_data_warga);
         $this->assertTrue($sp->aktif);
         $this->assertSame(0, $sp->urutan);
-        $this->assertStringContainsString('{{tempat_lahir}}', $sp->template_body);
+        $this->assertStringContainsString('{{daftar_keperluan}}', $sp->template_body);
+        $this->assertStringContainsString('{{nik}}', $sp->template_body);
 
         $jumlahSp = SuratJenis::query()->withoutGlobalScope('tenant')
             ->where('tenant_id', $rt->id)

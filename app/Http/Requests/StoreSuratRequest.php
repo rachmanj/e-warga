@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Keluarga;
 use App\Models\SuratJenis;
 use App\Models\Warga;
+use App\Services\SuratService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,9 @@ class StoreSuratRequest extends FormRequest
             ],
             'keluarga_id' => ['nullable', Rule::exists('keluarga', 'id')],
             'warga_id' => ['nullable', Rule::exists('warga', 'id')],
-            'keperluan' => ['required', 'string', 'max:5000'],
+            'keperluan' => ['nullable', 'string', 'max:5000'],
+            'keperluan_sp' => ['nullable', 'array'],
+            'keperluan_sp.*' => ['string', Rule::in(array_keys(SuratService::KEPERLUAN_SP))],
         ];
     }
 
@@ -42,6 +45,15 @@ class StoreSuratRequest extends FormRequest
             $jenis = SuratJenis::query()->find($jenisId);
             if ($jenis === null) {
                 return;
+            }
+
+            if ($jenis->kode === 'SP') {
+                $terpilih = $this->input('keperluan_sp', []);
+                if (! is_array($terpilih) || count(array_filter($terpilih)) < 1) {
+                    $validator->errors()->add('keperluan_sp', 'Pilih minimal satu keperluan untuk Surat Pengantar.');
+                }
+            } elseif (! $this->filled('keperluan')) {
+                $validator->errors()->add('keperluan', 'Keperluan surat wajib diisi.');
             }
 
             if ($jenis->butuh_data_warga) {

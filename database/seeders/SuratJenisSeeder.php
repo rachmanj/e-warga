@@ -37,18 +37,27 @@ Nomor surat: {{nomor}}
 TXT;
 
     private string $templateBodySuratPengantar = <<<'TXT'
-Nomor: {{nomor}}
-
 Yang bertanda tangan di bawah ini, Ketua {{nama_rt}}, Kelurahan {{kelurahan}}, {{kota}}, dengan ini menerangkan bahwa:
 
-Nama              : {{nama}}
-NIK               : {{nik_tersamar}}
-Tempat/Tgl. Lahir : {{tempat_lahir}}, {{tanggal_lahir}}
-Alamat            : {{alamat}}
+Nama                  : {{nama}}
+No. KTP               : {{nik}}
+Jenis Kelamin         : {{pilihan_jenis_kelamin}}
+Tempat/Tanggal Lahir  : {{tempat_tanggal_lahir}}
+Status                : {{pilihan_status_perkawinan}}
+Pendidikan            : {{pilihan_pendidikan}}
+Agama                 : {{pilihan_agama}}
+Pekerjaan             : {{pekerjaan}}
+Kewarganegaraan       : {{pilihan_kewarganegaraan}}
+Alamat Tinggal        : {{alamat}}
+Golongan Darah        : {{pilihan_golongan_darah}}
 
-Surat pengantar ini dibuat untuk keperluan: {{keperluan}}.
+Keperluan untuk mengurus:
+{{daftar_keperluan}}
 
-{{kota}}, {{tanggal_terbit}}
+Pertimbangan Kartu Keluarga:
+{{pertimbangan_kk}}
+
+Demikian Surat Pengantar ini dibuat agar dapat dipergunakan sebagaimana mestinya.
 TXT;
 
     public function run(): void
@@ -71,7 +80,7 @@ TXT;
                 );
             }
 
-            SuratJenis::query()->withoutGlobalScope('tenant')->firstOrCreate(
+            $sp = SuratJenis::query()->withoutGlobalScope('tenant')->firstOrCreate(
                 [
                     'tenant_id' => $rt->id,
                     'kode' => 'SP',
@@ -85,6 +94,15 @@ TXT;
                     'urutan' => 0,
                 ]
             );
+
+            $body = $sp->template_body ?? '';
+            $masihTemplateLama = str_contains($body, '{{tempat_lahir}}')
+                || str_contains($body, '{{tanggal_lahir}}')
+                || str_contains($body, '{{nik_tersamar}}');
+
+            if ($masihTemplateLama) {
+                $sp->update(['template_body' => $this->templateBodySuratPengantar]);
+            }
         });
     }
 }
