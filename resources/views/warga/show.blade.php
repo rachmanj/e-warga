@@ -25,12 +25,24 @@
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
+    @if ($canLihatNomorPenuh ?? false)
+        <div id="nomor-penuh-pesan" class="alert alert-danger d-none mb-3" role="alert"></div>
+    @endif
+
     <div class="card card-outline card-success mb-3">
-        <div class="card-header"><strong>Kartu Keluarga</strong></div>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <strong>Kartu Keluarga</strong>
+            @if ($canLihatNomorPenuh ?? false)
+                <button type="button" id="btn-nomor-penuh" class="btn btn-sm btn-outline-secondary" data-url="{{ route('warga.nomor-penuh', $keluarga) }}">
+                    <span id="btn-nomor-penuh-label">Tampilkan nomor penuh</span>
+                    <span id="btn-nomor-penuh-spinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status" aria-hidden="true"></span>
+                </button>
+            @endif
+        </div>
         <div class="card-body">
             <dl class="row mb-0">
                 <dt class="col-sm-3">No. KK</dt>
-                <dd class="col-sm-9"><code>{{ $keluarga->no_kk_tersamar }}</code></dd>
+                <dd class="col-sm-9"><code id="no-kk-tampilan" data-masked="{{ $keluarga->no_kk_tersamar ?? '—' }}">{{ $keluarga->no_kk_tersamar ?? '—' }}</code></dd>
                 <dt class="col-sm-3">Alamat</dt>
                 <dd class="col-sm-9">{{ $keluarga->alamat }}</dd>
                 <dt class="col-sm-3">Blok / unit</dt>
@@ -65,7 +77,7 @@
                     @foreach ($keluarga->warga as $anggota)
                         <tr>
                             <td>{{ $anggota->nama }}</td>
-                            <td><code>{{ $anggota->nik_tersamar ?? '—' }}</code></td>
+                            <td><code class="nik-anggota-tampilan" data-warga-id="{{ $anggota->id }}" data-masked="{{ $anggota->nik_tersamar ?? '—' }}">{{ $anggota->nik_tersamar ?? '—' }}</code></td>
                             <td>{{ $hubunganLabel[$anggota->hubungan] ?? $anggota->hubungan }}</td>
                             <td>{{ $anggota->jenis_kelamin }}</td>
                             <td>{{ ucfirst($anggota->status) }}</td>
@@ -304,3 +316,115 @@
         </form>
     @endcan
 @stop
+
+@if ($canLihatNomorPenuh ?? false)
+@push('js')
+<script>
+(function () {
+    const btn = document.getElementById('btn-nomor-penuh');
+    if (!btn) {
+        return;
+    }
+
+    const label = document.getElementById('btn-nomor-penuh-label');
+    const spinner = document.getElementById('btn-nomor-penuh-spinner');
+    const pesanEl = document.getElementById('nomor-penuh-pesan');
+    const noKkEl = document.getElementById('no-kk-tampilan');
+    const url = btn.getAttribute('data-url');
+
+    let terbuka = false;
+    let dataNomor = null;
+
+    function setPesan(teks) {
+        if (!pesanEl) {
+            return;
+        }
+        if (teks) {
+            pesanEl.textContent = teks;
+            pesanEl.classList.remove('d-none');
+        } else {
+            pesanEl.textContent = '';
+            pesanEl.classList.add('d-none');
+        }
+    }
+
+    function sembunyikanNomorPenuh() {
+        if (noKkEl) {
+            noKkEl.textContent = noKkEl.getAttribute('data-masked') || '—';
+        }
+        document.querySelectorAll('.nik-anggota-tampilan').forEach(function (el) {
+            el.textContent = el.getAttribute('data-masked') || '—';
+        });
+        terbuka = false;
+        label.textContent = 'Tampilkan nomor penuh';
+        setPesan('');
+    }
+
+    function tampilkanNomorPenuh(data) {
+        if (noKkEl) {
+            noKkEl.textContent = data.no_kk !== null && data.no_kk !== undefined ? data.no_kk : '—';
+        }
+        const mapNik = {};
+        (data.anggota || []).forEach(function (a) {
+            mapNik[a.id] = a.nik;
+        });
+        document.querySelectorAll('.nik-anggota-tampilan').forEach(function (el) {
+            const id = parseInt(el.getAttribute('data-warga-id'), 10);
+            const nik = mapNik[id];
+            el.textContent = nik !== null && nik !== undefined ? nik : '—';
+        });
+        terbuka = true;
+        label.textContent = 'Sembunyikan nomor penuh';
+        setPesan('');
+    }
+
+    btn.addEventListener('click', function () {
+        if (terbuka) {
+            sembunyikanNomorPenuh();
+            return;
+        }
+
+        if (dataNomor !== null) {
+            tampilkanNomorPenuh(dataNomor);
+            return;
+        }
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        setPesan('');
+
+        fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    return response.json().then(function (body) {
+                        const msg = body && body.message ? body.message : null;
+                        throw new Error(msg || 'Gagal memuat nomor penuh. Coba lagi.');
+                    }).catch(function () {
+                        throw new Error('Gagal memuat nomor penuh. Coba lagi.');
+                    });
+                }
+                return response.json();
+            })
+            .then(function (data) {
+                dataNomor = data;
+                tampilkanNomorPenuh(data);
+            })
+            .catch(function (err) {
+                setPesan(err.message || 'Gagal memuat nomor penuh. Coba lagi.');
+            })
+            .finally(function () {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            });
+    });
+})();
+</script>
+@endpush
+@endif

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateKeluargaRequest;
 use App\Models\Keluarga;
 use App\Models\Warga;
 use App\Models\WargaMutasi;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -104,6 +105,51 @@ class WargaController extends Controller
             'canKelola' => request()->user()?->can('kelola_warga') ?? false,
             'canKelolaDokumen' => request()->user()?->can('kelola_dokumen') ?? false,
             'canLihatDokumen' => request()->user()?->can('lihat_dokumen') ?? false,
+            'canLihatNomorPenuh' => request()->user()?->can('lihat_nomor_penuh') ?? false,
+        ]);
+    }
+
+    public function nomorPenuh(Request $request, Keluarga $keluarga): JsonResponse
+    {
+        $keluarga->load([
+            'warga' => fn ($q) => $q->orderByRaw("CASE hubungan WHEN 'kepala' THEN 0 WHEN 'istri' THEN 1 WHEN 'anak' THEN 2 ELSE 3 END")->orderBy('nama'),
+        ]);
+
+        $anggota = $keluarga->warga->map(function (Warga $warga): array {
+            $nik = $warga->nik;
+
+            return [
+                'id' => $warga->id,
+                'nama' => $warga->nama,
+                'nik' => ($nik !== null && $nik !== '') ? $nik : null,
+            ];
+        })->values();
+
+        $noKk = $keluarga->no_kk;
+        $noKkLengkap = ($noKk !== null && $noKk !== '') ? $noKk : null;
+
+        $jumlahNikDibuka = $anggota->filter(fn (array $item): bool => $item['nik'] !== null)->count();
+
+        $kepala = $keluarga->warga->firstWhere('hubungan', 'kepala');
+        $namaKepala = $kepala?->nama ?? '—';
+
+        $user = $request->user();
+        $namaPengguna = $user?->nama ?? $user?->name ?? '—';
+
+        activity()
+            ->causedBy($user)
+            ->performedOn($keluarga)
+            ->event('nomor_penuh_dibuka')
+            ->withProperties([
+                'nama_pengguna' => $namaPengguna,
+                'nama_kepala_keluarga' => $namaKepala,
+                'jumlah_nik_dibuka' => $jumlahNikDibuka,
+            ])
+            ->log('Membuka nomor KK dan NIK penuh keluarga '.$namaKepala);
+
+        return response()->json([
+            'no_kk' => $noKkLengkap,
+            'anggota' => $anggota,
         ]);
     }
 

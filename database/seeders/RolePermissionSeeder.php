@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
     private array $permissions = [
         'kelola_rt',
         'lihat_warga',
+        'lihat_nomor_penuh',
         'kelola_warga',
         'lihat_dokumen',
         'kelola_dokumen',
@@ -48,6 +49,7 @@ class RolePermissionSeeder extends Seeder
         $ketua->syncPermissions([
             'kelola_rt',
             'lihat_warga',
+            'lihat_nomor_penuh',
             'lihat_dokumen',
             'lihat_iuran',
             'lihat_kas',

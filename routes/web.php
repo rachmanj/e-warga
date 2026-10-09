@@ -66,6 +66,10 @@ Route::middleware('auth')->group(function (): void {
             Route::get('warga/{keluarga}', [WargaController::class, 'show'])->name('warga.show');
         });
 
+        Route::get('warga/{keluarga}/nomor-penuh', [WargaController::class, 'nomorPenuh'])
+            ->middleware('permission:lihat_nomor_penuh')
+            ->name('warga.nomor-penuh');
+
         Route::middleware('permission:kelola_dokumen')->group(function (): void {
             Route::post('warga/{keluarga}/dokumen', [DokumenWargaController::class, 'store'])->name('warga.dokumen.store');
             Route::delete('dokumen/{dokumen}', [DokumenWargaController::class, 'destroy'])->name('dokumen.destroy');
