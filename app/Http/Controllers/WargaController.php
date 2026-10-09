@@ -114,7 +114,7 @@ class WargaController extends Controller
 
     public function update(UpdateKeluargaRequest $request, Keluarga $keluarga): RedirectResponse
     {
-        $keluarga->update($request->safe()->only([
+        $data = $request->safe()->only([
             'no_kk',
             'alamat',
             'blok_unit',
@@ -125,7 +125,13 @@ class WargaController extends Controller
             'tanggal_keluar',
             'status',
             'keterangan',
-        ]));
+        ]);
+
+        if (! $request->filled('no_kk')) {
+            unset($data['no_kk']);
+        }
+
+        $keluarga->update($data);
 
         return redirect()
             ->route('warga.show', $keluarga)

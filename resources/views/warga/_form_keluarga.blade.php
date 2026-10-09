@@ -1,14 +1,19 @@
 @php
     $hunianOptions = ['milik' => 'Milik', 'sewa' => 'Sewa', 'kontrak' => 'Kontrak', 'kos' => 'Kos'];
     $statusOptions = ['aktif' => 'Aktif', 'pindah' => 'Pindah', 'nonaktif' => 'Nonaktif'];
+    $modeUbah = isset($keluarga);
 @endphp
 
 <div class="row">
     <div class="col-md-6 mb-3">
-        <label class="form-label">Nomor KK <span class="text-danger">*</span></label>
-        <input type="text" name="no_kk" class="form-control @error('no_kk') is-invalid @enderror" maxlength="16" inputmode="numeric" pattern="\d{16}" value="{{ old('no_kk') }}" required autocomplete="off">
+        <label class="form-label">Nomor KK @unless($modeUbah)<span class="text-danger">*</span>@endunless</label>
+        <input type="text" name="no_kk" class="form-control @error('no_kk') is-invalid @enderror" maxlength="16" inputmode="numeric" @unless($modeUbah) pattern="\d{16}" required @else pattern="\d{16}" @endunless value="{{ old('no_kk') }}" autocomplete="off">
         @error('no_kk')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        <small class="text-muted">16 digit angka. Tidak ditampilkan penuh setelah disimpan.</small>
+        @if ($modeUbah)
+            <small class="text-muted">Kosongkan bila tidak ingin mengubah nomor KK. Nomor KK saat ini hanya ditampilkan dalam bentuk tersamar (mis. {{ $keluarga->no_kk_tersamar }}).</small>
+        @else
+            <small class="text-muted">16 digit angka. Tidak ditampilkan penuh setelah disimpan.</small>
+        @endif
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label">Status hunian <span class="text-danger">*</span></label>

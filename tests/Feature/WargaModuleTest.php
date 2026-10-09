@@ -9,6 +9,7 @@ use App\Support\ActiveRt;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -107,6 +108,101 @@ class WargaModuleTest extends TestCase
 
         $response->assertRedirect(route('warga.create'));
         $response->assertSessionHasErrors('no_kk');
+    }
+
+    public function test_menambah_keluarga_tanpa_nomor_kk_ditolak(): void
+    {
+        $this->loginSebagai('sekretaris');
+
+        $response = $this->from(route('warga.create'))->post(route('warga.store'), [
+            'alamat' => 'Jl. Tanpa KK',
+            'status_hunian' => 'milik',
+            'status' => 'aktif',
+            'nama' => 'Tanpa KK',
+            'jenis_kelamin' => 'L',
+        ]);
+
+        $response->assertRedirect(route('warga.create'));
+        $response->assertSessionHasErrors('no_kk');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payloadUbahKeluarga(array $overrides = []): array
+    {
+        return array_merge([
+            'alamat' => 'Jl. Merdeka No. 1',
+            'status_hunian' => 'milik',
+            'status' => 'aktif',
+        ], $overrides);
+    }
+
+    public function test_mengubah_alamat_keluarga_tanpa_nomor_kk_mempertahankan_kk(): void
+    {
+        $this->loginSebagai('sekretaris');
+        ['keluarga' => $keluarga] = $this->buatKeluargaDenganKepala();
+
+        $sebelum = DB::table('keluarga')->where('id', $keluarga->id)->first(['no_kk', 'no_kk_hash']);
+        $this->assertNotNull($sebelum);
+
+        $response = $this->put(route('warga.update', $keluarga), $this->payloadUbahKeluarga([
+            'alamat' => 'Jl. Merdeka No. 99',
+            'no_kk' => '',
+        ]));
+
+        $response->assertRedirect(route('warga.show', $keluarga));
+        $this->assertDatabaseHas('keluarga', ['id' => $keluarga->id, 'alamat' => 'Jl. Merdeka No. 99']);
+
+        $sesudah = DB::table('keluarga')->where('id', $keluarga->id)->first(['no_kk', 'no_kk_hash']);
+        $this->assertSame($sebelum->no_kk, $sesudah->no_kk);
+        $this->assertSame($sebelum->no_kk_hash, $sesudah->no_kk_hash);
+    }
+
+    public function test_mengubah_nomor_kk_valid_memperbarui_nilai_dan_hash(): void
+    {
+        $this->loginSebagai('sekretaris');
+        ['keluarga' => $keluarga] = $this->buatKeluargaDenganKepala();
+
+        $kkBaru = '3201234567890999';
+        $hashBaru = hash_hmac('sha256', $kkBaru, config('app.key'));
+
+        $sebelum = DB::table('keluarga')->where('id', $keluarga->id)->first(['no_kk', 'no_kk_hash']);
+        $this->assertNotSame($hashBaru, $sebelum->no_kk_hash);
+
+        $response = $this->put(route('warga.update', $keluarga), $this->payloadUbahKeluarga([
+            'no_kk' => $kkBaru,
+        ]));
+
+        $response->assertRedirect(route('warga.show', $keluarga));
+
+        $sesudah = DB::table('keluarga')->where('id', $keluarga->id)->first(['no_kk', 'no_kk_hash']);
+        $this->assertNotSame($sebelum->no_kk, $sesudah->no_kk);
+        $this->assertSame($hashBaru, $sesudah->no_kk_hash);
+        $this->assertSame($kkBaru, $keluarga->fresh()->no_kk);
+    }
+
+    public function test_nomor_kk_duplikat_saat_ubah_keluarga_ditolak(): void
+    {
+        $this->loginSebagai('sekretaris');
+        $this->buatKeluargaDenganKepala();
+
+        $keluargaLain = Keluarga::query()->create([
+            'tenant_id' => $this->rtUtama()->id,
+            'no_kk' => '3201234567890123',
+            'alamat' => 'Jl. Lain',
+            'status_hunian' => 'sewa',
+            'status' => 'aktif',
+        ]);
+
+        $response = $this->from(route('warga.edit', $keluargaLain))->put(route('warga.update', $keluargaLain), $this->payloadUbahKeluarga([
+            'alamat' => 'Jl. Lain Diubah',
+            'no_kk' => self::KK,
+        ]));
+
+        $response->assertRedirect(route('warga.edit', $keluargaLain));
+        $response->assertSessionHasErrors('no_kk');
+        $this->assertDatabaseHas('keluarga', ['id' => $keluargaLain->id, 'alamat' => 'Jl. Lain']);
     }
 
     public function test_keluarga_rt_lain_menjawab_404(): void

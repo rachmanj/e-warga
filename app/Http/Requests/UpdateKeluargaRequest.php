@@ -14,6 +14,13 @@ class UpdateKeluargaRequest extends FormRequest
         return $this->user()?->can('kelola_warga') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('no_kk') && $this->input('no_kk') === '') {
+            $this->merge(['no_kk' => null]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -24,9 +31,13 @@ class UpdateKeluargaRequest extends FormRequest
 
         return [
             'no_kk' => [
-                'required',
+                'nullable',
                 'regex:/^\d{16}$/',
                 function (string $attribute, mixed $value, \Closure $fail) use ($keluargaId): void {
+                    if ($value === null) {
+                        return;
+                    }
+
                     $tenantId = ActiveRt::tenantScopeId();
                     if ($tenantId === null) {
                         $fail('RT aktif tidak ditemukan.');
@@ -64,7 +75,6 @@ class UpdateKeluargaRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'no_kk.required' => 'Nomor KK wajib diisi.',
             'no_kk.regex' => 'Nomor KK harus 16 digit angka.',
             'alamat.required' => 'Alamat wajib diisi.',
             'status_hunian.required' => 'Status hunian wajib dipilih.',
