@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class RolePermissionSeederTest extends TestCase
@@ -44,5 +45,27 @@ class RolePermissionSeederTest extends TestCase
 
         $this->assertTrue(Hash::check('sandi-lama-tetap', $admin->password));
         $this->assertFalse(Hash::check('sandi-baru-dari-config', $admin->password));
+    }
+
+    public function test_ketua_rt_memiliki_izin_kelola_warga_dan_kelola_dokumen_setelah_seeder(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $ketua = Role::findByName('ketua_rt');
+
+        $this->assertTrue($ketua->hasPermissionTo('kelola_warga'));
+        $this->assertTrue($ketua->hasPermissionTo('kelola_dokumen'));
+    }
+
+    public function test_pengurus_tidak_memiliki_izin_kelola_warga_kelola_dokumen_dan_kas_setelah_seeder(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $pengurus = Role::findByName('pengurus');
+
+        $this->assertFalse($pengurus->hasPermissionTo('kelola_warga'));
+        $this->assertFalse($pengurus->hasPermissionTo('kelola_dokumen'));
+        $this->assertFalse($pengurus->hasPermissionTo('lihat_kas'));
+        $this->assertFalse($pengurus->hasPermissionTo('kelola_kas'));
     }
 }
