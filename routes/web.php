@@ -46,6 +46,9 @@ Route::middleware('auth')->group(function (): void {
             ->name('pengguna.index');
 
         Route::get('pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+        Route::post('pengaturan/rt', [PengaturanController::class, 'updateRt'])
+            ->middleware('permission:kelola_rt')
+            ->name('pengaturan.rt.update');
 
         Route::middleware('permission:kelola_warga')->group(function (): void {
             Route::get('warga/create', [WargaController::class, 'create'])->name('warga.create');
