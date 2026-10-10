@@ -104,10 +104,9 @@ class SuratModuleTest extends TestCase
         $this->post(route('surat.terbitkan', $surat))->assertRedirect();
 
         $surat->refresh();
-        $rt = $this->rtUtama();
 
         $this->assertSame('terbit', $surat->status);
-        $this->assertSame('001/SKD/'.$rt->nama.'/'.$rt->rw.'/2026', $surat->nomor_lengkap);
+        $this->assertSame('001/GSI-32/26', $surat->nomor_lengkap);
         $this->assertSame(1, $surat->nomor_urut);
     }
 
@@ -131,7 +130,7 @@ class SuratModuleTest extends TestCase
 
         $kedua->refresh();
         $this->assertSame(2, $kedua->nomor_urut);
-        $this->assertStringStartsWith('002/SKD/', $kedua->nomor_lengkap ?? '');
+        $this->assertSame('002/GSI-32/26', $kedua->nomor_lengkap);
     }
 
     public function test_tahun_baru_nomor_urut_reset_001(): void
@@ -153,8 +152,7 @@ class SuratModuleTest extends TestCase
         $this->post(route('surat.terbitkan', $surat2027));
 
         $surat2027->refresh();
-        $rt = $this->rtUtama();
-        $this->assertSame('001/SKD/'.$rt->nama.'/'.$rt->rw.'/2027', $surat2027->nomor_lengkap);
+        $this->assertSame('001/GSI-32/27', $surat2027->nomor_lengkap);
         $this->assertSame(1, $surat2027->nomor_urut);
     }
 

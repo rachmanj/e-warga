@@ -8,6 +8,16 @@ use Illuminate\Database\Seeder;
 
 class SuratJenisSeeder extends Seeder
 {
+    private const FORMAT_NOMOR_GLOBAL = '{urut}/GSI-32/{tahun2}';
+
+    /**
+     * @var list<string>
+     */
+    private const FORMAT_NOMOR_LAMA = [
+        '{urut}/{kode}/{rt}/{rw}/{tahun}',
+        '{urut}/GSI-32/{tahun}',
+    ];
+
     /**
      * @var list<array{kode: string, nama: string, urutan: int}>
      */
@@ -64,20 +74,22 @@ TXT;
     {
         Rt::query()->each(function (Rt $rt): void {
             foreach ($this->jenis as $item) {
-                SuratJenis::query()->withoutGlobalScope('tenant')->firstOrCreate(
+                $jenis = SuratJenis::query()->withoutGlobalScope('tenant')->firstOrCreate(
                     [
                         'tenant_id' => $rt->id,
                         'kode' => $item['kode'],
                     ],
                     [
                         'nama' => $item['nama'],
-                        'format_nomor' => '{urut}/{kode}/{rt}/{rw}/{tahun}',
+                        'format_nomor' => self::FORMAT_NOMOR_GLOBAL,
                         'template_body' => $this->templateBody,
                         'butuh_data_warga' => true,
                         'aktif' => true,
                         'urutan' => $item['urutan'],
                     ]
                 );
+
+                $this->perbaruiFormatNomorLama($jenis);
             }
 
             $sp = SuratJenis::query()->withoutGlobalScope('tenant')->firstOrCreate(
@@ -87,7 +99,7 @@ TXT;
                 ],
                 [
                     'nama' => 'Surat Pengantar',
-                    'format_nomor' => '{urut}/GSI-32/{tahun2}',
+                    'format_nomor' => self::FORMAT_NOMOR_GLOBAL,
                     'template_body' => $this->templateBodySuratPengantar,
                     'butuh_data_warga' => true,
                     'aktif' => true,
@@ -112,9 +124,14 @@ TXT;
                 }
             }
 
-            if ($sp->format_nomor === '{urut}/GSI-32/{tahun}') {
-                $sp->update(['format_nomor' => '{urut}/GSI-32/{tahun2}']);
-            }
+            $this->perbaruiFormatNomorLama($sp);
         });
+    }
+
+    private function perbaruiFormatNomorLama(SuratJenis $jenis): void
+    {
+        if (in_array($jenis->format_nomor, self::FORMAT_NOMOR_LAMA, true)) {
+            $jenis->update(['format_nomor' => self::FORMAT_NOMOR_GLOBAL]);
+        }
     }
 }

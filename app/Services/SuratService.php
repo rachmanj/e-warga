@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Rt;
 use App\Models\Surat;
+use App\Models\SuratNomorCounter;
 use App\Models\Warga;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
@@ -54,18 +55,33 @@ class SuratService
         return $kode;
     }
 
-    public function nomorBerikutnya(int $tenantId, int $suratJenisId, int $tahun): int
+    public function nomorBerikutnya(int $tenantId, int $tahun): int
     {
-        return (int) DB::transaction(function () use ($tenantId, $suratJenisId, $tahun): int {
-            $max = Surat::query()
+        return (int) DB::transaction(function () use ($tenantId, $tahun): int {
+            $counter = SuratNomorCounter::query()
                 ->where('tenant_id', $tenantId)
-                ->where('surat_jenis_id', $suratJenisId)
                 ->where('tahun', $tahun)
-                ->whereNotNull('nomor_urut')
                 ->lockForUpdate()
-                ->max('nomor_urut');
+                ->first();
 
-            return ($max ?? 0) + 1;
+            if ($counter === null) {
+                SuratNomorCounter::query()->create([
+                    'tenant_id' => $tenantId,
+                    'tahun' => $tahun,
+                    'nomor_terakhir' => 0,
+                ]);
+
+                $counter = SuratNomorCounter::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('tahun', $tahun)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+            }
+
+            $counter->nomor_terakhir = $counter->nomor_terakhir + 1;
+            $counter->save();
+
+            return $counter->nomor_terakhir;
         });
     }
 
@@ -92,7 +108,6 @@ class SuratService
 
                     $urut = $this->nomorBerikutnya(
                         (int) $surat->tenant_id,
-                        (int) $surat->surat_jenis_id,
                         $tahun
                     );
 
@@ -458,7 +473,8 @@ class SuratService
     {
         $message = $exception->getMessage();
 
-        return str_contains($message, 'surat_tenant_id_surat_jenis_id_nomor_urut_tahun_unique')
+        return str_contains($message, 'surat_tenant_id_nomor_urut_tahun_unique')
+            || str_contains($message, 'surat_tenant_id_surat_jenis_id_nomor_urut_tahun_unique')
             || str_contains($message, 'surat.tenant_id')
             || str_contains($message, 'UNIQUE constraint failed');
     }

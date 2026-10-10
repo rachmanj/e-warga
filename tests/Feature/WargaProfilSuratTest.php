@@ -134,7 +134,7 @@ class WargaProfilSuratTest extends TestCase
             ->where('tenant_id', $rt->id)
             ->where('kode', 'SKD')
             ->firstOrFail();
-        $this->assertSame('{urut}/{kode}/{rt}/{rw}/{tahun}', $skd->format_nomor);
+        $this->assertSame('{urut}/GSI-32/{tahun2}', $skd->format_nomor);
     }
 
     private function buatRt(): Rt
