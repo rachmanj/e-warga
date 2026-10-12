@@ -404,7 +404,7 @@ return [
         // mode toggle). Set it to false when your application provides its own
         // endpoint, or when the color mode is fully client side.
 
-        'routes' => true,
+        'routes' => false,
 
         // The color used for the 'theme-color' meta tags. These are used by
         // some browsers to colorize parts of their user interface.

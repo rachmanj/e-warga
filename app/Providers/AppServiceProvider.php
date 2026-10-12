@@ -8,6 +8,7 @@ use App\Models\IuranPembayaran;
 use App\Models\IuranTagihan;
 use App\Models\KasTransaksi;
 use App\Models\Surat;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         if (config('app.env') === 'production' && str_starts_with(config('app.url'), 'https')) {
             URL::forceScheme('https');
         }

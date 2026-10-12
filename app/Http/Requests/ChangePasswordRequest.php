@@ -39,7 +39,7 @@ class ChangePasswordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'current_password.current_password' => 'Kata sandi saat ini tidak sesuai.',
+            'current_password.current_password' => 'Kata sandi lama tidak sesuai.',
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
         ];
     }

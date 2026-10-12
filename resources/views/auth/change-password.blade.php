@@ -17,7 +17,7 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label for="current_password" class="form-label">Kata sandi saat ini</label>
+                    <label for="current_password" class="form-label">Kata sandi lama</label>
                     <input type="password" name="current_password" id="current_password"
                            class="form-control @error('current_password') is-invalid @enderror" required autocomplete="current-password">
                     @error('current_password')
@@ -28,7 +28,8 @@
                 <div class="mb-3">
                     <label for="password" class="form-label">Kata sandi baru</label>
                     <input type="password" name="password" id="password"
-                           class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password">
+                           class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password" minlength="8">
+                    <div class="form-text">Minimal 8 karakter.</div>
                     @error('password')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -37,7 +38,10 @@
                 <div class="mb-3">
                     <label for="password_confirmation" class="form-label">Konfirmasi kata sandi baru</label>
                     <input type="password" name="password_confirmation" id="password_confirmation"
-                           class="form-control" required autocomplete="new-password">
+                           class="form-control @error('password_confirmation') is-invalid @enderror" required autocomplete="new-password" minlength="8">
+                    @error('password_confirmation')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="background-color: #0f766e; border-color: #0f766e;">

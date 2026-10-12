@@ -236,6 +236,7 @@
 
     {{-- Custom Stylesheets (post AdminLTE) --}}
     @yield('adminlte_css')
+    @include('partials.ewarga-ui-styles')
 
     {{-- Favicon --}}
     @if(config('adminlte.use_ico_only'))

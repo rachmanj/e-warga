@@ -32,7 +32,8 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Blok / unit</label>
-                    <input type="text" name="blok_unit" class="form-control" value="{{ $filters['blok_unit'] ?? '' }}" placeholder="Contoh: A-12">
+                    <input type="text" name="blok_unit" class="form-control" value="{{ $filters['blok_unit'] ?? '' }}" placeholder="Contoh: 31" inputmode="numeric" autocomplete="off">
+                    <div class="form-text">Nomor blok atau unit rumah (angka).</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Cari nama atau alamat</label>
@@ -50,6 +51,7 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
+                        <th>No.</th>
                         <th>No. KK</th>
                         <th>Kepala keluarga</th>
                         <th>Anggota</th>
@@ -63,6 +65,7 @@
                     @forelse ($keluarga as $kk)
                         @php $kepala = $kk->warga->first(); @endphp
                         <tr>
+                            <td>{{ $keluarga->firstItem() + $loop->index }}</td>
                             <td><code>{{ $kk->no_kk_tersamar ?? '—' }}</code></td>
                             <td>{{ $kepala?->nama ?? '—' }}</td>
                             <td>{{ $kk->warga_count }}</td>
@@ -78,7 +81,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">Belum ada data keluarga.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Belum ada data keluarga.</td>
                         </tr>
                     @endforelse
                 </tbody>

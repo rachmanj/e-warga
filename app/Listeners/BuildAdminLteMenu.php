@@ -10,6 +10,12 @@ class BuildAdminLteMenu
     {
         $event->menu->add(
             [
+                'text' => 'Ubah kata sandi',
+                'route' => 'ubah-sandi.edit',
+                'icon' => 'bi bi-lock',
+                'topnav_user' => true,
+            ],
+            [
                 'text' => 'Dashboard',
                 'route' => 'dashboard',
                 'icon' => 'bi bi-speedometer2',
